@@ -10,7 +10,7 @@ genDocs.GenerateDocs("FULL PATH FOR FOLDER OF DOCS", "FULL PATH FOR OUTPUT XML F
 ```
 
 ## Some Todos
-- [ ] Figure out "& q u o t ;" stuff
+- [x] ~Figure out "& q u o t ;" stuff~
 - [ ] Generate more MDN-content docs and not only [web-api](https://github.com/mdn/content/tree/main/files/en-us/web/api)
 - [ ] Do members in xml, see [this](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/xmldoc/examples)
 - [ ] How to do parameters???
