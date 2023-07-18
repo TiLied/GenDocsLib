@@ -6,14 +6,14 @@ using Markdig;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using Markdig.Extensions.Tables;
-using System.Xml.Linq;
-using System;
+using System.IO;
 
 namespace GenDocsLib
 {
 	public class GenDocs
 	{
-		private string Output = string.Empty;
+		private string _Output = string.Empty;
+		private string _Path = string.Empty;
 
 		public GenDocs()
 		{
@@ -25,40 +25,92 @@ namespace GenDocsLib
 			Trace.Listeners.Add(new ConsoleTraceListener());
 		}
 
-		public async void GenerateDocs(string path, string output)
+		public async Task GenerateDocs(string path, string output)
 		{
-			Output = output;
+			_Output = output + "\\Docs";
+			_Path = path;
 
-			if (!Directory.Exists(output))
+			if (!Directory.Exists(_Output))
 			{
-				Directory.CreateDirectory(output);
+				Directory.CreateDirectory(_Output);
 			}
 
-			if (File.Exists(Path.Combine(Output, "DocsFail.generated.txt")))
+			if (File.Exists(Path.Combine(_Output, "DocsFail.generated.txt")))
 			{
-				File.Delete(Path.Combine(Output, "DocsFail.generated.txt"));
+				File.Delete(Path.Combine(_Output, "DocsFail.generated.txt"));
 			}
 
-			StringBuilder sb = new();
-			sb.Append("<docs>\n");
+			//StringBuilder sb = new();
+			//sb.Append("<docs>\n");
 
-			ProcessDirectory(ref sb, path);
+			await ProcessDirectory(path);
 
-			sb.Append("</docs>");
+			//sb.Append("</docs>");
 
-			await File.WriteAllTextAsync(Path.Combine(output, "Docs.generated.xml"), sb.ToString());
+			//await File.WriteAllTextAsync(Path.Combine(_Output, "Docs.generated.xml"), sb.ToString());
 		}
 
-		private void ProcessDirectory(ref StringBuilder sb, string targetDirectory)
+		private async Task ProcessDirectory(string targetDirectory)
 		{
+			string name = string.Empty;
+
+			if (targetDirectory == _Path)
+			{
+				name = "index";
+			}
+			else 
+			{
+				string _str = targetDirectory.Remove(0, _Path.Length);
+				string[] _names = _str.Split("\\");
+				_str = string.Empty;
+				foreach (string item in _names)
+				{
+					_str += item.FirstCharToUpperCase();
+				}
+				name = _str;
+
+				if(name.Contains("_"))
+				{
+					name = name.Split("_")[0];
+				}
+			}
+
+			if (!Directory.Exists(_Output + $"\\{name}"))
+			{
+				Directory.CreateDirectory(_Output + $"\\{name}");
+			}
+
 			string[] fileEntries = Directory.GetFiles(targetDirectory);
-			foreach (string fileName in fileEntries)
-				ProcessFile(ref sb, fileName);
+
+			foreach (string fileName in fileEntries) 
+			{
+				if (fileName.EndsWith(".md"))
+				{
+					if (!File.Exists(Path.Combine(_Output + $"\\{name}", $"{name}.generated.xml")))
+					{
+						FileStream fS = File.Create(Path.Combine(_Output + $"\\{name}", $"{name}.generated.xml"));
+						fS.Dispose();
+					}
+
+					string _fileStr = await File.ReadAllTextAsync(Path.Combine(_Output + $"\\{name}", $"{name}.generated.xml"));
+
+					StringBuilder _sb = new();
+					_sb.Append("<docs>\n");
+
+					ProcessFile(ref _sb, fileName);
+
+					_sb.Append("</docs>");
+					string _sbStr = _sb.ToString();
+
+					if(_fileStr != _sbStr)
+						await File.WriteAllTextAsync(Path.Combine(_Output + $"\\{name}", $"{name}.generated.xml"), _sbStr);
+				}
+			}
 
 			// Recurse into subdirectories of this directory.
 			string[] subdirectoryEntries = Directory.GetDirectories(targetDirectory);
 			foreach (string subdirectory in subdirectoryEntries)
-				ProcessDirectory(ref sb, subdirectory);
+				await ProcessDirectory(subdirectory);
 		}
 
 		private void ProcessFile(ref StringBuilder sb, string path)
@@ -393,7 +445,7 @@ namespace GenDocsLib
 
 				Regex reff = new(@"domx?ref", RegexOptions.IgnoreCase);
 
-				Regex mustache = new(@"{{2,}[(\S\s)]+?}{2,}", RegexOptions.IgnoreCase);
+				Regex mustache = new(@"{{1,}[(\S\s)]+?}{1,}", RegexOptions.IgnoreCase);
 
 				if (mustache.IsMatch(text) &&
 					tuple.Item1 == 1 &&
