@@ -73,6 +73,12 @@ namespace GenDocsLib
 				{
 					name = name.Split("_")[0];
 				}
+
+				//Todo! same in GenSharpLib
+				if (name.Length >= 60) 
+				{
+					name = name.Substring(0, 60);
+				}
 			}
 
 			if (!Directory.Exists(_Output + $"\\{name}"))
@@ -95,7 +101,8 @@ namespace GenDocsLib
 					string _fileStr = await File.ReadAllTextAsync(Path.Combine(_Output + $"\\{name}", $"{name}.generated.xml"));
 
 					StringBuilder _sb = new();
-					_sb.Append("<docs>\n");
+					_sb.Append("<docs>");
+					_sb.AppendLine();
 
 					ProcessFile(ref _sb, fileName);
 
