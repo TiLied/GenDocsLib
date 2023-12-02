@@ -2,7 +2,7 @@
 This library is related to [CSharpToJavaScript](https://github.com/TiLied/CSharpToJavaScript) for generating xml docs from MDN.
 
 ## How to use
-- Download [MDN-content web api](https://github.com/mdn/content/tree/main/files/en-us/web/api)
+- Download [MDN-content web](https://github.com/mdn/content/tree/main/files/en-us/web)
 - Add in Main Method:
 ```csharp
 GenDocs genDocs = new();
@@ -11,7 +11,7 @@ await genDocs.GenerateDocs("FULL PATH FOR FOLDER OF DOCS", "FULL PATH FOR OUTPUT
 
 ## Some Todos
 - [x] ~Figure out "& q u o t ;" stuff~
-- [ ] Generate more MDN-content docs and not only [web-api](https://github.com/mdn/content/tree/main/files/en-us/web/api)
+- [x] ~Generate more MDN-content docs and not only [web-api](https://github.com/mdn/content/tree/main/files/en-us/web/api)~ partially completed! generated web
 - [ ] Do members in xml, see [this](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/xmldoc/examples)
 - [ ] How to do parameters???
 
