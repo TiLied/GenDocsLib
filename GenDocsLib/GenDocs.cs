@@ -68,7 +68,7 @@ namespace GenDocsLib
 				}
 				name = _str;
 
-				if(name.Contains("_"))
+				if(name.Contains('_'))
 				{
 					string[] strings = name.Split("_");
 					name = string.Empty;
@@ -140,20 +140,18 @@ namespace GenDocsLib
 			List<Block> blocks = result.ToList();
 			for (int i = 0; i < blocks.Count; i++)
 			{
-				Block md = blocks[i];
-
 				ProcessMDBlocks(ref tuple, blocks[i]);
 			}
 
 			if (tuple.Item2[0] == null)
 			{
-				Log($"xmlStr[0] == null, path:{path.Substring(path.IndexOf("DocsToGen"))}\n");
+				Log($"xmlStr[0] == null, path:{path.Replace("\\", "/").Substring(Path.GetPathRoot(path.Replace("\\", "/")).Length)}\n");
 				return;
 			}
 
 			if (tuple.Item2[0] == "<>")
 			{
-				Log($"xmlStr[0] == \"<>\", path:{path.Substring(path.IndexOf("DocsToGen"))}\n");
+				Log($"xmlStr[0] == \"<>\", path:{path.Replace("\\", "/").Substring(Path.GetPathRoot(path.Replace("\\", "/")).Length)}\n");
 				return;
 			}
 
@@ -396,7 +394,7 @@ namespace GenDocsLib
 			{
 				string text = literalInline.ToString();
 
-				if (tuple.Item1 != 0 && inline.Parent.ParentBlock is HeadingBlock headingBlock)
+				if (tuple.Item1 != 0 && inline.Parent.ParentBlock is HeadingBlock)
 				{
 					if (text.StartsWith("Value"))
 					{
@@ -573,7 +571,7 @@ namespace GenDocsLib
 				return;
 			}
 			//
-			if (inline is LineBreakInline breakInline)
+			if (inline is LineBreakInline)
 			{
 				tuple.Item2[tuple.Item1] += $"<br/>";
 				return;
@@ -589,8 +587,9 @@ namespace GenDocsLib
 			MatchCollection matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string name = group.Value;
 
@@ -624,18 +623,19 @@ namespace GenDocsLib
 			MatchCollection matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string value = group.Value;
 
-					if (value.Contains(","))
+					if (value.Contains(','))
 					{
 						//TODO!
 						value = value.Split(",").First();
 					}
 
-					if (value.Contains("\""))
+					if (value.Contains('"'))
 						value = value.Replace("\"", "");
 
 					value = value.Replace("()", "");
@@ -648,10 +648,10 @@ namespace GenDocsLib
 						value += s.FirstCharToUpperCase() + ".";
 					}
 
-					if(value.EndsWith("."))
+					if(value.EndsWith('_'))
 						value = value.Remove(value.Length - 1);
 					
-					if (value.Contains("\""))
+					if (value.Contains('"'))
 						str = regex.Replace(str, "<see cref=" + value + "/>", 1);
 					else
 						str = regex.Replace(str, "<see cref=\"" + value + "\"/>", 1);
@@ -664,18 +664,19 @@ namespace GenDocsLib
 			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string value = group.Value;
 
-					if (value.Contains(","))
+					if (value.Contains(','))
 					{
 						//TODO!
 						value = value.Split(",").First();
 					}
 
-					if (value.Contains("\""))
+					if (value.Contains('"'))
 						value = value.Replace("\"", "");
 
 					value = value.Replace("()", "");
@@ -688,7 +689,7 @@ namespace GenDocsLib
 						value += s.FirstCharToUpperCase();
 					}
 
-					if (value.Contains("\""))
+					if (value.Contains('"'))
 						str = regex.Replace(str, "<see cref=" + value + "/>", 1);
 					else
 						str = regex.Replace(str, "<see cref=\"" + value + "\"/>", 1);
@@ -701,12 +702,13 @@ namespace GenDocsLib
 			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string value = group.Value;
 
-					if (value.Contains(","))
+					if (value.Contains(','))
 					{
 						//TODO!
 						value = value.Split(",").First();
@@ -726,12 +728,13 @@ namespace GenDocsLib
 			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string value = group.Value;
 
-					if (value.Contains(","))
+					if (value.Contains(','))
 					{
 						//TODO!
 						value = value.Split(",").First();
@@ -751,12 +754,13 @@ namespace GenDocsLib
 			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string value = group.Value;
 
-					if (value.Contains(","))
+					if (value.Contains(','))
 					{
 						//TODO!
 						value = value.Split(",").First();
@@ -775,12 +779,13 @@ namespace GenDocsLib
 			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string value = group.Value;
 
-					if (value.Contains(","))
+					if (value.Contains(','))
 					{
 						//TODO!
 						value = value.Split(",").First();
@@ -798,12 +803,13 @@ namespace GenDocsLib
 			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string value = group.Value;
 
-					if (value.Contains(","))
+					if (value.Contains(','))
 					{
 						//TODO!
 						value = value.Split(",").First();
@@ -822,12 +828,13 @@ namespace GenDocsLib
 			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string value = group.Value;
 
-					if (value.Contains(","))
+					if (value.Contains(','))
 					{
 						//TODO!
 						value = value.Split(",").First();
@@ -845,12 +852,13 @@ namespace GenDocsLib
 			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string value = group.Value;
 
-					if (value.Contains(","))
+					if (value.Contains(','))
 					{
 						//TODO!
 						value = value.Split(",").First();
@@ -869,12 +877,13 @@ namespace GenDocsLib
 			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
-				foreach (Match _match in matchCollection)
+				for (int i = 0; i < matchCollection.Count; i++)
 				{
+					Match _match = matchCollection[i];
 					Group? group = _match.Groups[1];
 					string value = group.Value;
 
-					if (value.Contains(","))
+					if (value.Contains(','))
 					{
 						//TODO!
 						value = value.Split(",").First();
@@ -896,8 +905,9 @@ namespace GenDocsLib
 				matchCollection = regex.Matches(str);
 				if (matchCollection.Count > 0)
 				{
-					foreach (Match _match in matchCollection)
+					for (int i = 0; i < matchCollection.Count; i++)
 					{
+						Match _match = matchCollection[i];
 						Group? group = _match.Groups[1];
 						string value = group.Value;
 
@@ -950,7 +960,7 @@ namespace GenDocsLib
 
 		private static void Log(string message, [CallerFilePath] string? file = null, [CallerMemberName] string? member = null, [CallerLineNumber] int line = 0)
 		{
-			Trace.WriteLine($"({line}):{Path.GetFileName(file)} {member}: {message}");
+			Trace.WriteLine($"({line}):{Path.GetFileName(file.Replace("\\", "/"))} {member}: {message}");
 		}
 	}
 }
