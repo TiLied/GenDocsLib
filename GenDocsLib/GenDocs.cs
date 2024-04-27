@@ -643,6 +643,7 @@ namespace GenDocsLib
 						value = value.Replace("\"", "");
 
 					value = value.Replace("()", "");
+					value = value.Replace("_static", "");
 
 					string[] arr = value.Split(".");
 
