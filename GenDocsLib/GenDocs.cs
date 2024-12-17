@@ -9,7 +9,6 @@ using Markdig.Extensions.Tables;
 using System.IO;
 using System.Threading.Tasks;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace GenDocsLib
@@ -67,6 +66,9 @@ namespace GenDocsLib
 					_str += item.FirstCharToUpperCase();
 				}
 				name = _str;
+
+				if (name.EndsWith("_static"))
+					name = name.Replace("_static", "");
 
 				if(name.Contains('_'))
 				{
@@ -137,21 +139,23 @@ namespace GenDocsLib
 
 			ValueTuple<int, string[]> tuple = new(0, new string[10]);
 
-			List<Block> blocks = result.ToList();
-			for (int i = 0; i < blocks.Count; i++)
+			Block[] blocks = result.ToArray();
+			for (int i = 0; i < blocks.Length; i++)
 			{
 				ProcessMDBlocks(ref tuple, blocks[i]);
 			}
 
+			string pathRoot = Path.GetPathRoot(path.Replace("\\", "/")) ?? $"Path.GetPathRoot is null: {path}";
+
 			if (tuple.Item2[0] == null)
 			{
-				Log($"xmlStr[0] == null, path:{path.Replace("\\", "/").Substring(Path.GetPathRoot(path.Replace("\\", "/")).Length)}\n");
+				Log($"xmlStr[0] == null, path:{path.Replace("\\", "/").Substring(pathRoot.Length)}\n");
 				return;
 			}
 
 			if (tuple.Item2[0] == "<>")
 			{
-				Log($"xmlStr[0] == \"<>\", path:{path.Replace("\\", "/").Substring(Path.GetPathRoot(path.Replace("\\", "/")).Length)}\n");
+				Log($"xmlStr[0] == \"<>\", path:{path.Replace("\\", "/").Substring(pathRoot.Length)}\n");
 				return;
 			}
 
@@ -201,7 +205,7 @@ namespace GenDocsLib
 		{
 			if (block is HeadingBlock headingBlock)
 			{
-				List<Inline> inlines = headingBlock.Inline.ToList();
+				Inline[] inlines = headingBlock.Inline.ToArray();
 				foreach (Inline inline in inlines)
 				{
 					ProcessMDInlines(ref tuple, inline);
@@ -217,7 +221,7 @@ namespace GenDocsLib
 					tuple.Item2[tuple.Item1] += "<para>";
 				}
 
-				List<Inline> inlines = paragraphBlock.Inline.ToList();
+				Inline[] inlines = paragraphBlock.Inline.ToArray();
 				foreach (Inline inline in inlines)
 				{
 					ProcessMDInlines(ref tuple, inline);
@@ -244,7 +248,7 @@ namespace GenDocsLib
 
 			if (block is ListBlock listBlock && tuple.Item1 == 7)
 			{
-				List<Block> lBlock = listBlock.ToList();
+				Block[] lBlock = listBlock.ToArray();
 				foreach (Block block1 in lBlock)
 				{
 					ProcessMDBlocks(ref tuple, block1);
@@ -257,7 +261,7 @@ namespace GenDocsLib
 			{
 				tuple.Item2[tuple.Item1] += "-";
 
-				List<Block> lBlock = listItemBlock.ToList();
+				Block[] lBlock = listItemBlock.ToArray();
 				foreach (Block block1 in lBlock)
 				{
 					ProcessMDBlocks(ref tuple, block1);
@@ -270,18 +274,17 @@ namespace GenDocsLib
 
 			if (block is QuoteBlock quoteBlock)
 			{
-				List<Block> lB = quoteBlock.ToList();
+				Block[] lB = quoteBlock.ToArray();
 				tuple.Item2[tuple.Item1] += "<blockquote";
 
 				if (lB[0] is ParagraphBlock _p)
 				{
 					if (_p.Inline.ToList().Count > 1)
 					{
-						EmphasisInline _eI = _p.Inline.ToList()[0] as EmphasisInline;
-						if (_eI != null)
+						if (_p.Inline.ToList()[0] is EmphasisInline _eI)
 						{
 							string _str = (_eI.ToList()[0] as LiteralInline).ToString();
-							if (_str.Contains("Note")) 
+							if (_str.Contains("Note"))
 							{
 								tuple.Item2[tuple.Item1] += " class=\"NOTE\"><h5>NOTE</h5";
 							}
@@ -317,7 +320,7 @@ namespace GenDocsLib
 			{
 				tuple.Item2[tuple.Item1] += "<table>";
 
-				List<Block> lB = table.ToList();
+				Block[] lB = table.ToArray();
 
 				foreach (Block b in lB)
 				{
@@ -333,7 +336,7 @@ namespace GenDocsLib
 			{
 				tuple.Item2[tuple.Item1] += "<td>";
 
-				List<Block> lB = tableCell.ToList();
+				Block[] lB = tableCell.ToArray();
 
 				foreach (Block b in lB)
 				{
@@ -349,7 +352,7 @@ namespace GenDocsLib
 			{
 				tuple.Item2[tuple.Item1] += "<tr>";
 
-				List<Block> lB = tableRow.ToList();
+				Block[] lB = tableRow.ToArray();
 
 				foreach (Block b in lB)
 				{
@@ -425,6 +428,7 @@ namespace GenDocsLib
 
 					text = text.Replace("slug:", "").Trim();
 					text = text.Replace("\\n", "").Trim();
+					text = text.Replace("_static", "").Trim();
 
 					tuple.Item2[9] = $"<para><seealso href=\"https://developer.mozilla.org/en-US/docs/{text.Trim()}\"> <em>See also on MDN</em> </seealso></para>";
 
@@ -489,7 +493,7 @@ namespace GenDocsLib
 
 			if (inline is EmphasisInline emphasisInline)
 			{
-				List<Inline> eiL = emphasisInline.ToList();
+				Inline[] eiL = emphasisInline.ToArray();
 
 				foreach (Inline item in eiL)
 				{
@@ -516,7 +520,7 @@ namespace GenDocsLib
 				else
 					tuple.Item2[tuple.Item1] += $"<see href=\"https://developer.mozilla.org{linkInline.Url}\">";
 
-				List<Inline> liL = linkInline.ToList();
+				Inline[] liL = linkInline.ToArray();
 				foreach (Inline item in liL)
 				{
 					ProcessMDInlines(ref tuple, item);
@@ -549,7 +553,7 @@ namespace GenDocsLib
 			//?
 			if (inline is LinkDelimiterInline linkDelimiterInline)
 			{
-				List<Inline> lI = linkDelimiterInline.ToList();
+				Inline[] lI = linkDelimiterInline.ToArray();
 
 				foreach (Inline i in lI)
 				{
@@ -562,7 +566,7 @@ namespace GenDocsLib
 			//?
 			if (inline is PipeTableDelimiterInline tableDelimiterInline)
 			{
-				List<Inline> tI = tableDelimiterInline.ToList();
+				Inline[] tI = tableDelimiterInline.ToArray();
 
 				foreach (Inline i in tI)
 				{
@@ -580,7 +584,7 @@ namespace GenDocsLib
 			Log(inline.GetType().Name);
 		}
 
-		private string ProcessMDString(string str)
+		private static string ProcessMDString(string str)
 		{
 			Regex regex = new(@"\[([^\[]+)\]\((\/{1,}.*)\)");
 
@@ -617,7 +621,7 @@ namespace GenDocsLib
 			return str;
 		}
 
-		private string ProcessMustache(string str) 
+		private static string ProcessMustache(string str) 
 		{
 			Regex regex = new(@"{{ ?domxref\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
 			MatchCollection matchCollection = regex.Matches(str);
@@ -930,8 +934,10 @@ namespace GenDocsLib
 							value.Contains("HTTPSidebar", StringComparison.OrdinalIgnoreCase) ||
 							value.Contains("DOMAttributeMethods", StringComparison.OrdinalIgnoreCase) ||
 							value.Contains("ListGroups", StringComparison.OrdinalIgnoreCase) ||
-							value.Contains("APIListAlpha", StringComparison.OrdinalIgnoreCase))
+							value.Contains("APIListAlpha", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("EmbedYouTube", StringComparison.OrdinalIgnoreCase))
 						{
+							
 							str = regex.Replace(str, "", 1);
 							continue;
 						}
@@ -960,7 +966,7 @@ namespace GenDocsLib
 
 		private static void Log(string message, [CallerFilePath] string? file = null, [CallerMemberName] string? member = null, [CallerLineNumber] int line = 0)
 		{
-			Trace.WriteLine($"({line}):{Path.GetFileName(file.Replace("\\", "/"))} {member}: {message}");
+			Trace.WriteLine($"({line}):{Path.GetFileName(file?.Replace("\\", "/"))} {member}: {message}");
 		}
 	}
 }
