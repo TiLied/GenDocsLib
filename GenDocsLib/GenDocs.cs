@@ -93,7 +93,7 @@ namespace GenDocsLib
 				return;
 			}
 
-			sb.Append(tuple.Item2[0]);
+			sb.Append(tuple.Item2[0].Replace("@","_"));
 
 			sb.AppendLine();
 
@@ -132,7 +132,7 @@ namespace GenDocsLib
 				sb.AppendLine("</returns>");
 			}
 
-			sb.AppendLine(tuple.Item2[0].Replace("<", "</"));
+			sb.AppendLine(tuple.Item2[0].Replace("<", "</").Replace("@", "_"));
 		}
 
 		private void ProcessMDBlocks(ref ValueTuple<int, string[]> tuple, Block block)
@@ -517,48 +517,80 @@ namespace GenDocsLib
 		}
 		private string ProcessMDString(string str)
 		{
-			//"   &quot;
-			//'   &apos;
-			//< &lt;
-			//> &gt;
-			//& &amp;
-			str = str.Replace("\"", "&quot;");
-			str = str.Replace("'", "&apos;");
-			str = str.Replace("<", "&lt;");
-			str = str.Replace(">", "&gt;");
-			str = str.Replace("&", "&amp;");
-
 			Regex regex = new(@"{{domxref\(([\s\S]+?)\)(\s+)?}}", RegexOptions.IgnoreCase);
 
-			Match match = regex.Match(str);
-			if (match.Success)
+			MatchCollection matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
 			{
-				Group? group = match.Groups[1];
-				string value = group.Value;
-
-				if (value.Contains(","))
+				foreach (Match _match in matchCollection)
 				{
-					//TODO!
-					value = value.Split(",").First();
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("()", "");
+
+					string[] arr = value.Split(".");
+
+					value = "";
+					foreach (string s in arr)
+					{
+						value += s.FirstCharToUpperCase();
+					}
+
+					if (value.Contains("\""))
+						str = regex.Replace(str, "<see cref=" + value + "/>", 1);
+					else
+						str = regex.Replace(str, "<see cref=\"" + value + "\"/>", 1);
 				}
 
-				value = value.Replace("&quot;", "");
-				value = value.Replace("()", "");
+				return str;
+			}
+			
+			regex = new(@"{{jsxref\(([\s\S]+?)\)(\s+)?}}", RegexOptions.IgnoreCase);
 
-				string[] arr = value.Split(".");
-
-				value = "";
-				foreach (string s in arr)
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
 				{
-					value += s.FirstCharToUpperCase();
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("()", "");
+
+					string[] arr = value.Split(".");
+
+					value = "";
+					foreach (string s in arr)
+					{
+						value += s.FirstCharToUpperCase();
+					}
+
+					if (value.Contains("\""))
+						str = regex.Replace(str, "<see cref=" + value + "/>", 1);
+					else
+						str = regex.Replace(str, "<see cref=\"" + value + "\"/>", 1);
 				}
 
-				str = regex.Replace(str, "<see cref=\"" + value + "\"/>");
+				return str;
 			}
 
-			Regex link = new(@"\[([^\[]+)\]\((\/{1,}.*)\)");
 
-			MatchCollection matchCollection = link.Matches(str);
+			regex = new(@"\[([^\[]+)\]\((\/{1,}.*)\)");
+
+			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
 				foreach (Match _match in matchCollection)
@@ -571,7 +603,21 @@ namespace GenDocsLib
 
 					str = str.Replace(_match.Groups[0].Value, $"<see href=\"{uri}\">{name}</see>");
 				}
+				return str;
 			}
+
+			//"	&quot;
+			//'	&apos;
+			//<	&lt;
+			//>	&gt;
+			//&	&amp;
+			str = str.Replace("\"", "&quot;");
+			str = str.Replace("'", "&apos;");
+			str = str.Replace("<", "&lt;");
+			str = str.Replace(">", "&gt;");
+			str = str.Replace("&", "&amp;");
+
+			str = str.Replace("@", "_");
 
 			return str;
 		}
