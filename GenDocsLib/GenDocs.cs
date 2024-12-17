@@ -6,6 +6,8 @@ using Markdig;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using Markdig.Extensions.Tables;
+using System.Xml.Linq;
+using System;
 
 namespace GenDocsLib
 {
@@ -208,9 +210,30 @@ namespace GenDocsLib
 
 			if (block is QuoteBlock quoteBlock)
 			{
-				tuple.Item2[tuple.Item1] += "<blockquote>";
-
 				List<Block> lB = quoteBlock.ToList();
+				tuple.Item2[tuple.Item1] += "<blockquote";
+
+				if (lB[0] is ParagraphBlock _p)
+				{
+					if (_p.Inline.ToList().Count > 1)
+					{
+						EmphasisInline _eI = _p.Inline.ToList()[0] as EmphasisInline;
+						if (_eI != null)
+						{
+							string _str = (_eI.ToList()[0] as LiteralInline).ToString();
+							if (_str.Contains("Note")) 
+							{
+								tuple.Item2[tuple.Item1] += " class=\"NOTE\"><h5>NOTE</h5";
+							}
+							if (_str.Contains("Warning"))
+							{
+								tuple.Item2[tuple.Item1] += " class=\"WARNING\"><h5>WARNING</h5";
+							}
+						}
+					}
+				}
+
+				tuple.Item2[tuple.Item1] += ">";
 
 				foreach (Block b in lB)
 				{
@@ -218,7 +241,7 @@ namespace GenDocsLib
 				}
 
 				if (tuple.Item2[1] != null &&
-					tuple.Item2[1].StartsWith("<blockquote>") == true &&
+					tuple.Item2[1].Contains("<blockquote") == true &&
 					tuple.Item2[1].EndsWith("</blockquote>") == false)
 				{
 					tuple.Item2[1] += "</blockquote>";
@@ -368,52 +391,33 @@ namespace GenDocsLib
 					return;
 				}
 
-
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//TODO!!!!!!!!!!!!!!!!!!
-				//Do somthing with {{apiref}}, ignore?, and generally do something with {{...}}
-
 				Regex reff = new(@"domx?ref", RegexOptions.IgnoreCase);
 
-				Regex t = new(@"{{1,}[(\S\s)]+?}{1,}", RegexOptions.IgnoreCase);
+				Regex mustache = new(@"{{2,}[(\S\s)]+?}{2,}", RegexOptions.IgnoreCase);
 
-				if (t.IsMatch(text) &&
+				if (mustache.IsMatch(text) &&
 					tuple.Item1 == 1 &&
 					tuple.Item2[1] == null &&
 					!reff.IsMatch(text))
 				{
 					tuple.Item1 = 3;
+					if (text.Contains("deprecated_header", StringComparison.OrdinalIgnoreCase))
+					{
+						tuple.Item2[1] += "<div class=\"IMPORTANT\"><h5>IMPORTANT</h5> <strong>Deprecated</strong></div> ";
+					}
 					return;
 				}
 
-				Regex api = new(@"{{apiref", RegexOptions.IgnoreCase);
-				if (api.IsMatch(text) &&
-					!reff.IsMatch(text))
+				//
+				//Mustache
+				if (mustache.IsMatch(text))
 				{
+					tuple.Item2[tuple.Item1] += ProcessMustache(text);
 					return;
 				}
-
-				//if (t.IsMatch(text) &&
-				//	!reff.IsMatch(text))
-				//{
-				//	return;
-				//}
+				
 				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-
+				//md string
 				if (tuple.Item1 != 0)
 				{
 					tuple.Item2[tuple.Item1] += ProcessMDString(text);
@@ -515,82 +519,12 @@ namespace GenDocsLib
 
 			Log(inline.GetType().Name);
 		}
+
 		private string ProcessMDString(string str)
 		{
-			Regex regex = new(@"{{domxref\(([\s\S]+?)\)(\s+)?}}", RegexOptions.IgnoreCase);
+			Regex regex = new(@"\[([^\[]+)\]\((\/{1,}.*)\)");
 
 			MatchCollection matchCollection = regex.Matches(str);
-			if (matchCollection.Count > 0)
-			{
-				foreach (Match _match in matchCollection)
-				{
-					Group? group = _match.Groups[1];
-					string value = group.Value;
-
-					if (value.Contains(","))
-					{
-						//TODO!
-						value = value.Split(",").First();
-					}
-
-					value = value.Replace("()", "");
-
-					string[] arr = value.Split(".");
-
-					value = "";
-					foreach (string s in arr)
-					{
-						value += s.FirstCharToUpperCase();
-					}
-
-					if (value.Contains("\""))
-						str = regex.Replace(str, "<see cref=" + value + "/>", 1);
-					else
-						str = regex.Replace(str, "<see cref=\"" + value + "\"/>", 1);
-				}
-
-				return str;
-			}
-			
-			regex = new(@"{{jsxref\(([\s\S]+?)\)(\s+)?}}", RegexOptions.IgnoreCase);
-
-			matchCollection = regex.Matches(str);
-			if (matchCollection.Count > 0)
-			{
-				foreach (Match _match in matchCollection)
-				{
-					Group? group = _match.Groups[1];
-					string value = group.Value;
-
-					if (value.Contains(","))
-					{
-						//TODO!
-						value = value.Split(",").First();
-					}
-
-					value = value.Replace("()", "");
-
-					string[] arr = value.Split(".");
-
-					value = "";
-					foreach (string s in arr)
-					{
-						value += s.FirstCharToUpperCase();
-					}
-
-					if (value.Contains("\""))
-						str = regex.Replace(str, "<see cref=" + value + "/>", 1);
-					else
-						str = regex.Replace(str, "<see cref=\"" + value + "\"/>", 1);
-				}
-
-				return str;
-			}
-
-
-			regex = new(@"\[([^\[]+)\]\((\/{1,}.*)\)");
-
-			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
 			{
 				foreach (Match _match in matchCollection)
@@ -619,6 +553,336 @@ namespace GenDocsLib
 
 			str = str.Replace("@", "_");
 
+			return str;
+		}
+
+		private string ProcessMustache(string str) 
+		{
+			Regex regex = new(@"{{ ?domxref\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
+			MatchCollection matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
+				{
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					if (value.Contains("\""))
+						value = value.Replace("\"", "");
+
+					value = value.Replace("()", "");
+
+					string[] arr = value.Split(".");
+
+					value = "";
+					foreach (string s in arr)
+					{
+						value += s.FirstCharToUpperCase() + ".";
+					}
+
+					if(value.EndsWith("."))
+						value = value.Remove(value.Length - 1);
+					
+					if (value.Contains("\""))
+						str = regex.Replace(str, "<see cref=" + value + "/>", 1);
+					else
+						str = regex.Replace(str, "<see cref=\"" + value + "\"/>", 1);
+				}
+
+				return str;
+			}
+
+			regex = new(@"{{jsxref\(([\s\S]+?)\)(\s+)?}}", RegexOptions.IgnoreCase);
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
+				{
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					if (value.Contains("\""))
+						value = value.Replace("\"", "");
+
+					value = value.Replace("()", "");
+
+					string[] arr = value.Split(".");
+
+					value = "";
+					foreach (string s in arr)
+					{
+						value += s.FirstCharToUpperCase();
+					}
+
+					if (value.Contains("\""))
+						str = regex.Replace(str, "<see cref=" + value + "/>", 1);
+					else
+						str = regex.Replace(str, "<see cref=\"" + value + "\"/>", 1);
+				}
+
+				return str;
+			}
+
+			regex = new(@"{{ ?glossary\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
+				{
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("\"", "");
+
+					//https://developer.mozilla.org/en-US/docs/Glossary/
+					str = regex.Replace(str, $"<see href=\"https://developer.mozilla.org/en-US/docs/Glossary/{value}\">{value}</see>", 1);
+				}
+
+				return str;
+			}
+
+			
+			regex = new(@"{{ ?htmlelement\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
+				{
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("\"", "");
+
+					//https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
+					str = regex.Replace(str, $"<see href=\"https://developer.mozilla.org/en-US/docs/Web/HTML/Element/{value}\">{value}</see>", 1);
+				}
+
+				return str;
+			}
+
+			
+			regex = new(@"{{ ?cssxref\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
+				{
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("\"", "");
+
+					//https://developer.mozilla.org/en-US/docs/Web/CSS/
+					str = regex.Replace(str, $"<see href=\"https://developer.mozilla.org/en-US/docs/Web/CSS/{value}\">{value}</see>", 1);
+				}
+
+				return str;
+			}
+
+			regex = new(@"{{ ?livesamplelink\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
+				{
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("\"", "");
+
+					str = regex.Replace(str, value, 1);
+				}
+
+				return str;
+			}
+
+			regex = new(@"{{ ?httpheader\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
+				{
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("\"", "");
+
+					//https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/
+					str = regex.Replace(str, $"<see href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/{value}\">{value}</see>", 1);
+				}
+				
+				return str;
+			}
+
+			regex = new(@"{{ ?WebExtAPIRef\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
+				{
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("\"", "");
+
+					str = regex.Replace(str, value, 1);
+				}
+
+				return str;
+			}
+
+			regex = new(@"{{ ?SVGElement\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
+				{
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("\"", "");
+
+					//https://developer.mozilla.org/en-US/docs/Web/API/SVGElement
+					str = regex.Replace(str, $"<see href=\"https://developer.mozilla.org/en-US/docs/Web/API/SVGElement{value}\">{value}</see>", 1);
+				}
+
+				return str;
+			}
+
+			regex = new(@"{{ ?SVGAttr\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				foreach (Match _match in matchCollection)
+				{
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(","))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("\"", "");
+
+					
+					str = regex.Replace(str, value, 1);
+				}
+
+				return str;
+			}
+
+			if (str.StartsWith("{{") && str.EndsWith("}}")) 
+			{
+				regex = new(@"{{([\s\S]+?)}}", RegexOptions.IgnoreCase);
+
+				matchCollection = regex.Matches(str);
+				if (matchCollection.Count > 0)
+				{
+					foreach (Match _match in matchCollection)
+					{
+						Group? group = _match.Groups[1];
+						string value = group.Value;
+
+						
+						if (value.Contains("Deprecated_Header", StringComparison.OrdinalIgnoreCase))
+						{
+							str = regex.Replace(str, "<div class=\"IMPORTANT\"><strong>Deprecated</strong></div>", 1);
+							continue;
+						}
+						
+						if (value.Contains("InheritanceDiagram", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("EmbedLiveSample", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("SecureContext_Header", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("DefaultAPISidebar", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("PreviousMenu", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("PreviousNext", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("Next", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("Previous", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("EmbedGHLiveSample", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("HTTPSidebar", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("DOMAttributeMethods", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("ListGroups", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("APIListAlpha", StringComparison.OrdinalIgnoreCase))
+						{
+							str = regex.Replace(str, "", 1);
+							continue;
+						}
+						
+						if (value.Contains("compat", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("specifications", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("apiref", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("AvailableInWorkers", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("SVGAttr", StringComparison.OrdinalIgnoreCase)) 
+						{
+							str = regex.Replace(str, value, 1);
+							continue;
+						}
+
+						str = regex.Replace(str, value, 1);
+						Log($"Missing Mustache Default: {str}");
+					}
+
+					return str;
+				}
+			}
+
+			Log($"Missing Mustache: {str}");
 			return str;
 		}
 
