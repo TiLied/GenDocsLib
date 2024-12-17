@@ -6,7 +6,7 @@ This library is related to [CSharpToJavaScript](https://github.com/TiLied/CSharp
 - Add in Main Method:
 ```csharp
 GenDocs genDocs = new();
-await genDocs.GenerateDocs("FULL PATH FOR FOLDER OF DOCS", "FULL PATH FOR OUTPUT XML FILE");
+await genDocs.GenerateDocs("FULL PATH FOR FOLDER OF DOCS", "FULL PATH FOR OUTPUT XML FILES");
 ```
 
 ## Some Todos
@@ -21,6 +21,10 @@ CSharpToJavaScript library: https://github.com/TiLied/CSharpToJavaScript
 
 CLI for library: https://github.com/TiLied/CSTOJS_CLI
   
+VS Code Extension using CLI: https://github.com/TiLied/CSTOJS_VSCode_Ext
+
+VS Extension using CLI: https://github.com/TiLied/CSTOJS_VS_Ext
+
 Website/documentation: https://github.com/TiLied/CSTOJS_Pages
 - Blazor WebAssembly: https://github.com/TiLied/CSTOJS_BWA
 
