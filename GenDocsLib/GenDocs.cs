@@ -584,7 +584,7 @@ namespace GenDocsLib
 			Log(inline.GetType().Name);
 		}
 
-		private static string ProcessMDString(string str)
+		private string ProcessMDString(string str)
 		{
 			Regex regex = new(@"\[([^\[]+)\]\((\/{1,}.*)\)");
 
@@ -621,7 +621,7 @@ namespace GenDocsLib
 			return str;
 		}
 
-		private static string ProcessMustache(string str) 
+		private string ProcessMustache(string str) 
 		{
 			Regex regex = new(@"{{ ?domxref\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
 			MatchCollection matchCollection = regex.Matches(str);
@@ -652,7 +652,7 @@ namespace GenDocsLib
 						value += s.FirstCharToUpperCase() + ".";
 					}
 
-					if(value.EndsWith('_'))
+					if(value.EndsWith('.'))
 						value = value.Remove(value.Length - 1);
 					
 					if (value.Contains('"'))
