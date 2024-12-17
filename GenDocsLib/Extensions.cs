@@ -1,4 +1,6 @@
-﻿namespace GenDocsLib
+﻿using System;
+
+namespace GenDocsLib
 {
 	internal static class Extensions
 	{
