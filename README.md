@@ -16,11 +16,15 @@ await genDocs.GenerateDocs("FULL PATH FOR FOLDER OF DOCS", "FULL PATH FOR OUTPUT
 - [ ] How to do parameters???
 
 ## Related Repository 
-https://github.com/TiLied/CSharpToJavaScript
+CSharpToJavaScript library: https://github.com/TiLied/CSharpToJavaScript
+- Library for generating csharp: https://github.com/TiLied/GenCSharpLib
 
-https://github.com/TiLied/GenCSharpLib
+CLI for library: https://github.com/TiLied/CSTOJS_CLI
+  
+Website/documentation: https://github.com/TiLied/CSTOJS_Pages
+- Blazor WebAssembly: https://github.com/TiLied/CSTOJS_BWA
 
-## Thanks and usings
+## Thanks for packages and content <3
 [Markdig](https://github.com/xoofx/markdig) nuget package
 
 [MDN-content](https://github.com/mdn/content) for js docs
