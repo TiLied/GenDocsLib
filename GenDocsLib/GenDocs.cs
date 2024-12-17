@@ -366,7 +366,7 @@ namespace GenDocsLib
 					text = text.Replace("slug:", "").Trim();
 					text = text.Replace("\\n", "").Trim();
 
-					tuple.Item2[9] = $"<para><seealso href=\"https://developer.mozilla.org/en-US/docs/{text.Trim()}\"><em>See also on MDN</em></seealso></para>";
+					tuple.Item2[9] = $"<para><seealso href=\"https://developer.mozilla.org/en-US/docs/{text.Trim()}\"> <em>See also on MDN</em> </seealso></para>";
 
 					string[] names = text.Split('/');
 
