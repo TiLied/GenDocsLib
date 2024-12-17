@@ -6,7 +6,7 @@ This library is related to [CSharpToJavaScript](https://github.com/TiLied/CSharp
 - Add in Main Method:
 ```csharp
 GenDocs genDocs = new();
-genDocs.GenerateDocs("FULL PATH FOR FOLDER OF DOCS", "FULL PATH FOR OUTPUT XML FILE");
+await genDocs.GenerateDocs("FULL PATH FOR FOLDER OF DOCS", "FULL PATH FOR OUTPUT XML FILE");
 ```
 
 ## Some Todos
