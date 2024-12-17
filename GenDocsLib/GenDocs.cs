@@ -40,14 +40,9 @@ namespace GenDocsLib
 				File.Delete(Path.Combine(_Output, "DocsFail.generated.txt"));
 			}
 
-			//StringBuilder sb = new();
-			//sb.Append("<docs>\n");
-
 			await ProcessDirectory(path);
 
-			//sb.Append("</docs>");
-
-			//await File.WriteAllTextAsync(Path.Combine(_Output, "Docs.generated.xml"), sb.ToString());
+			Log("--- Done!");
 		}
 
 		private async Task ProcessDirectory(string targetDirectory)
@@ -71,10 +66,14 @@ namespace GenDocsLib
 
 				if(name.Contains("_"))
 				{
-					name = name.Split("_")[0];
+					string[] strings = name.Split("_");
+					name = string.Empty;
+					foreach (string item in strings) 
+					{
+						name += name.FirstCharToUpperCase();
+					}
 				}
 
-				//Todo! same in GenSharpLib
 				if (name.Length >= 60) 
 				{
 					name = name.Substring(0, 60);
