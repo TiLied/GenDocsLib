@@ -10,6 +10,9 @@ using System.IO;
 using System.Threading.Tasks;
 using System;
 using System.Linq;
+using System.Collections.Generic;
+using Markdig.Extensions.Alerts;
+using Markdig.Helpers;
 
 namespace GenDocsLib
 {
@@ -17,6 +20,8 @@ namespace GenDocsLib
 	{
 		private string _Output = string.Empty;
 		private string _Path = string.Empty;
+
+		private Dictionary<string, string> _PartiallySupportedAs = new();
 
 		public GenDocs()
 		{
@@ -41,6 +46,35 @@ namespace GenDocsLib
 			if (File.Exists(Path.Combine(_Output, "DocsFail.generated.txt")))
 			{
 				File.Delete(Path.Combine(_Output, "DocsFail.generated.txt"));
+			}
+
+			if (File.Exists(output + "NETAPI.cs"))
+			{
+				string[] _lines = File.ReadAllLines(output + "NETAPI.cs");
+				string _jsName = string.Empty;
+
+				for (int i = 0; i < _lines.Length; i += 1)
+				{
+					string _line = _lines[i];
+					if (_line.Contains("].JSName"))
+					{
+						string[] _splitLine = _line.Split("\"");
+						_jsName = _splitLine[1];
+
+					}
+					if (_line.Contains("].SymbolNames"))
+					{
+						string[] _splitLine = _line.Split("\"");
+						string _csName = $"<see cref=\"{_splitLine[0].Split("nameof(")[1].Split(")")[0]}\" />";
+
+						string _key = _jsName + "/" + _splitLine[1];
+
+						if (_PartiallySupportedAs.ContainsKey(_key))
+							_PartiallySupportedAs[_key] = _PartiallySupportedAs[_key] + " and " + _csName;
+						else
+							_PartiallySupportedAs.Add(_key, _csName);
+					}
+				}
 			}
 
 			await ProcessDirectory(path);
@@ -137,7 +171,7 @@ namespace GenDocsLib
 			var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 			MarkdownDocument? result = Markdown.Parse(file, pipeline);
 
-			ValueTuple<int, string[]> tuple = new(0, new string[10]);
+			ValueTuple<int, string[]> tuple = new(0, new string[11]);
 
 			Block[] blocks = result.ToArray();
 			for (int i = 0; i < blocks.Length; i++)
@@ -168,6 +202,12 @@ namespace GenDocsLib
 			sb.AppendLine("</summary>");
 
 			sb.AppendLine("<remarks>");
+			if (tuple.Item2[10] != null)
+			{
+				sb.Append(tuple.Item2[10]);
+				sb.AppendLine();
+			}
+
 			if (tuple.Item2[2] != null)
 			{
 				sb.Append(tuple.Item2[2]);
@@ -275,7 +315,32 @@ namespace GenDocsLib
 			if (block is QuoteBlock quoteBlock)
 			{
 				Block[] lB = quoteBlock.ToArray();
+
 				tuple.Item2[tuple.Item1] += "<blockquote";
+
+				if (quoteBlock is AlertBlock alertBlock)
+				{
+					if (alertBlock.Kind.ToString().Contains("note", StringComparison.OrdinalIgnoreCase))
+					{
+						tuple.Item2[tuple.Item1] += " class=\"NOTE\"><h5>NOTE</h5";
+					}
+					if (alertBlock.Kind.ToString().Contains("tip", StringComparison.OrdinalIgnoreCase))
+					{
+						tuple.Item2[tuple.Item1] += " class=\"TIP\"><h5>TIP</h5";
+					}
+					if (alertBlock.Kind.ToString().Contains("important", StringComparison.OrdinalIgnoreCase))
+					{
+						tuple.Item2[tuple.Item1] += " class=\"IMPORTANT\"><h5>IMPORTANT</h5";
+					}
+					if (alertBlock.Kind.ToString().Contains("warning", StringComparison.OrdinalIgnoreCase))
+					{
+						tuple.Item2[tuple.Item1] += " class=\"WARNING\"><h5>WARNING</h5";
+					}
+					if (alertBlock.Kind.ToString().Contains("caution", StringComparison.OrdinalIgnoreCase))
+					{
+						tuple.Item2[tuple.Item1] += " class=\"CAUTION\"><h5>CAUTION</h5";
+					}
+				}
 
 				if (lB[0] is ParagraphBlock _p)
 				{
@@ -283,14 +348,19 @@ namespace GenDocsLib
 					{
 						if (_p.Inline.ToList()[0] is EmphasisInline _eI)
 						{
-							string _str = (_eI.ToList()[0] as LiteralInline).ToString();
-							if (_str.Contains("Note"))
+							LiteralInline? _li = (_eI.ToList()[0] as LiteralInline);
+							if (_li != null)
 							{
-								tuple.Item2[tuple.Item1] += " class=\"NOTE\"><h5>NOTE</h5";
-							}
-							if (_str.Contains("Warning"))
-							{
-								tuple.Item2[tuple.Item1] += " class=\"WARNING\"><h5>WARNING</h5";
+								string _str = _li.ToString();
+
+								if (_str.Contains("note", StringComparison.OrdinalIgnoreCase))
+								{
+									tuple.Item2[tuple.Item1] += " class=\"NOTE\"><h5>NOTE</h5";
+								}
+								if (_str.Contains("warning", StringComparison.OrdinalIgnoreCase))
+								{
+									tuple.Item2[tuple.Item1] += " class=\"WARNING\"><h5>WARNING</h5";
+								}
 							}
 						}
 					}
@@ -432,6 +502,14 @@ namespace GenDocsLib
 
 					tuple.Item2[9] = $"<para><seealso href=\"https://developer.mozilla.org/en-US/docs/{text.Trim()}\"> <em>See also on MDN</em> </seealso></para>";
 
+					foreach (KeyValuePair<string, string> item in _PartiallySupportedAs)
+					{
+						if (text.Contains(item.Key))
+						{
+							tuple.Item2[10] = $"<para><blockquote class=\"TIP\"><h5>TIP</h5> Partialy supported as {item.Value}</blockquote></para>";
+						}
+					}
+
 					string[] names = text.Split('/');
 
 					tuple.Item2[tuple.Item1] = "<";
@@ -468,7 +546,20 @@ namespace GenDocsLib
 					if (text.Contains("deprecated_header", StringComparison.OrdinalIgnoreCase))
 					{
 						tuple.Item2[1] += "<div class=\"IMPORTANT\"><h5>IMPORTANT</h5> <strong>Deprecated</strong></div> ";
+						return;
 					}
+					if (text.Contains("non-standard_header", StringComparison.OrdinalIgnoreCase))
+					{
+						tuple.Item2[1] += "<div class=\"CAUTION\"><h5>CAUTION</h5> <strong>Non-standard</strong></div> ";
+						return;
+					}
+					if (text.Contains("seecompattable", StringComparison.OrdinalIgnoreCase))
+					{
+						tuple.Item2[1] += "<div class=\"NOTE\"><h5>NOTE</h5> <strong>Experimental</strong></div> ";
+						return;
+					}
+
+					//Log($"Missing Mustache in !ProcessMDInlines!: {text}");
 					return;
 				}
 
@@ -754,7 +845,30 @@ namespace GenDocsLib
 				return str;
 			}
 
-			
+			regex = new(@"{{ ?httpmethod\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
+			matchCollection = regex.Matches(str);
+			if (matchCollection.Count > 0)
+			{
+				for (int i = 0; i < matchCollection.Count; i++)
+				{
+					Match _match = matchCollection[i];
+					Group? group = _match.Groups[1];
+					string value = group.Value;
+
+					if (value.Contains(','))
+					{
+						//TODO!
+						value = value.Split(",").First();
+					}
+
+					value = value.Replace("\"", "");
+
+					//https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/
+					str = regex.Replace(str, $"<see href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/{value}\">{value}</see>", 1);
+				}
+
+				return str;
+			}
 			regex = new(@"{{ ?cssxref\(([\s\S]+?)\)(\s+)? ?}}", RegexOptions.IgnoreCase);
 			matchCollection = regex.Matches(str);
 			if (matchCollection.Count > 0)
@@ -916,13 +1030,13 @@ namespace GenDocsLib
 						Group? group = _match.Groups[1];
 						string value = group.Value;
 
-						
+
 						if (value.Contains("Deprecated_Header", StringComparison.OrdinalIgnoreCase))
 						{
 							str = regex.Replace(str, "<div class=\"IMPORTANT\"><strong>Deprecated</strong></div>", 1);
 							continue;
 						}
-						
+
 						if (value.Contains("InheritanceDiagram", StringComparison.OrdinalIgnoreCase) ||
 							value.Contains("EmbedLiveSample", StringComparison.OrdinalIgnoreCase) ||
 							value.Contains("SecureContext_Header", StringComparison.OrdinalIgnoreCase) ||
@@ -936,7 +1050,8 @@ namespace GenDocsLib
 							value.Contains("DOMAttributeMethods", StringComparison.OrdinalIgnoreCase) ||
 							value.Contains("ListGroups", StringComparison.OrdinalIgnoreCase) ||
 							value.Contains("APIListAlpha", StringComparison.OrdinalIgnoreCase) ||
-							value.Contains("EmbedYouTube", StringComparison.OrdinalIgnoreCase))
+							value.Contains("EmbedYouTube", StringComparison.OrdinalIgnoreCase) ||
+							value.Contains("EmbedInteractiveExample", StringComparison.OrdinalIgnoreCase))
 						{
 							
 							str = regex.Replace(str, "", 1);
